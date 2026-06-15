@@ -16,11 +16,11 @@ Ein mentales Modell für TypeScript
 
 # Heute
 
-- Strukturelles vs. nominales Typsystem
+- Was macht TypeScript anders?
 - Typen als Mengen
-- Generics als Funktionen auf Typebene
-- In der Praxis: Discriminated Unions, Branded Types, Template Literals
-- Wo das Modell an Grenzen stößt
+- Was sind eigentlich Generics?
+- Programmieren auf Typebene
+- Anwendung!
 
 ---
 
@@ -38,7 +38,7 @@ typedef struct {
 void greet(Dog d) { printf("Hello, %s\n", d.name); }
 
 Dog d = { "Beethoven" };
-greet(c); // ✅
+greet(d); // ✅
 
 Cat c = { "Jennifer" };
 greet(c); // ❌
@@ -63,7 +63,7 @@ type Cat = { name: string }
 function greet(d: Dog) { console.log("Hello, " + d.name }
 
 const d: Dog = { name: "Beethoven" }
-greet(c) // ✅
+greet(d) // ✅
 
 const c: Cat = { name: "Jennifer" }
 greet(c) // ✅
@@ -170,7 +170,6 @@ type Nothing = string & number   // never  — leere Menge ∅
 ---
 
 <!--
-# Subtypen sind Teilmengen
 
 ```typescript
 type Shape  = { kind: string }
@@ -186,12 +185,10 @@ Mehr Properties = **kleinere** Menge = spezifischerer Typ.
 <!--
 
 section layout
-# Generics als Funktionen auf Typebene
 
 -->
 
 <!--
-# Generics sind Typ-Funktionen
 
 ```typescript
 // Werte → Werte
@@ -232,13 +229,6 @@ layout: section
 
 ---
 
-# Was braucht eine Programmiersprache?
-
-- Branching
-- Looping
-
----
-
 # Branching: Conditional Types & infer
 
 ```typescript
@@ -262,33 +252,37 @@ elementType([["nested", "array"], "outside"]) // ["nested", "array"]
 - `T extends X` = "ist T eine **Teilmenge** von X?"
 - `infer` = frag TypeScript, welcher Typ passt
 
-<!--
+---
 
-# Mapped Types
+# Gotcha: Distribution
 
 ```typescript
-type Optional<T> = {
-  [K in keyof T]?: T[K]
-}
+type ElementTypeDistributive<T> = T extends (infer U)[] ? U : T
+type ElementTypeNonDistributive<T> = [T] extends [(infer U)[]] ? U : T
+
+type A = ElementTypeDistributive<number | string[]> // number | string
+type B = ElementTypeNonDistributive<number | string[]> // number | string[]
 ```
 
-Iteriere über die Members einer Menge, transformiere jeden.
--->
+---
+
+# Verschachtelung auflösen...?
+
+```typescript
+type NestedElementType<T> = T extends (infer U)[]
+  ? U extends (infer V)[]
+    ? V
+    : U
+  : T
+
+type T = NestedElementType<string[][]>  // string
+```
+
+**Geht das eleganter...?**
 
 ---
 
 # Rekursion
-
-<!--
-```typescript
-type Reverse<T extends any[]> =
-  T extends [infer Head, ...infer Tail]
-    ? [...Reverse<Tail>, Head]
-    : []
-
-type R = Reverse<[1, 2, 3]>  // [3, 2, 1]
-```
--->
 
 ```typescript
 type DeepElementType<T> =
@@ -309,6 +303,23 @@ function deepElementType(value) {
 elementType(42);          // 42
 elementType(["a", "b"]);  // "a"
 elementType([["nested", "array"], "outside"]) // "nested"
+```
+
+---
+
+# Mapped Types
+
+```typescript
+type OnlyStringsAndBoolsAllowed = { [key: string]: string | boolean };
+// {a: "hello", myBoolean: true}
+```
+
+Mit Teilmengen + Generics:
+```typescript
+type FamousComposers = "Beethoven" | "Mozart" | "Bach";
+type MappedComposers = { [K in Lowercase<FamousComposers>]: K };
+
+// {beethoven: "beethoven", mozart: "mozart", bach: "bach"}
 ```
 
 ---
@@ -366,12 +377,6 @@ type EventName = `on${Capitalize<string>}`
 Eine unendliche Menge, beschrieben durch ein **Muster** statt durch Aufzählung.
 
 ---
-layout: section
----
-
-# Wo das Modell an Grenzen stößt
-
----
 
 # Excess Property Checking
 
@@ -385,6 +390,22 @@ const q: Point = { x: 1, y: 2, z: 3 } // ❌ excess property 'z'
 ```
 
 Laut Mengenmodell sind beide gültig. TypeScript ist bei frischen Object Literals bewusst strenger.
+
+---
+
+# Routen-Parameter Parser
+
+```typescript
+type Params<T extends string> =
+  T extends `${string}:${infer Param}/${infer Rest}`
+    ? { [K in Param]: string } & Params<`/${Rest}`>
+    : T extends `${string}:${infer Param}`
+    ? { [K in Param]: string }
+    : {}
+
+type R = Params<"/users/:id/posts/:postId">
+// { id: string; postId: string }
+```
 
 ---
 
