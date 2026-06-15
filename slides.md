@@ -348,6 +348,41 @@ if (shape.kind === 'circle') {
 
 ---
 
+# Narrowing ist Mengen-Verkleinerung
+
+```typescript
+function format(x: string | number) {
+  // x: string | number   — die ganze Menge
+  if (typeof x === 'string') {
+    x // string            — Menge verkleinert
+  } else {
+    x // number            — der Rest
+  }
+}
+```
+
+Jeder Type Guard verkleinert die Menge: `typeof` · `instanceof` · `in` · Truthiness
+
+---
+
+# Exhaustiveness mit `never`
+
+```typescript
+function area(shape: Shape) {
+  switch (shape.kind) {
+    case 'circle': return Math.PI * shape.radius ** 2
+    case 'square': return shape.side ** 2
+    default:
+      const _exhaustive: never = shape // ❌ wenn ein Fall fehlt
+  }
+}
+```
+
+Alle Teilmengen abgedeckt → übrig bleibt ∅ (`never`).
+Fehlt ein Fall, ist die Restmenge **nicht leer** → Compile-Fehler.
+
+---
+
 # Branded Types
 
 ```typescript
