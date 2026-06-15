@@ -333,47 +333,41 @@ layout: section
 # Discriminated Unions
 
 ```typescript
-type Shape =
-  | { kind: 'circle'; radius: number }
-  | { kind: 'square'; side: number }
+type ApiResponse =
+  | { status: 'loading' }
+  | { status: 'success'; data: User[] }
+  | { status: 'error';   message: string }
 ```
 
-Jede Branch ist eine disjunkte Teilmenge. Narrowing ist Mengenschnitt:
-
-```typescript
-if (shape.kind === 'circle') {
-  shape.radius // ✅  Shape ∩ { kind: 'circle' }
-}
-```
+Jede Branch ist eine disjunkte Teilmenge — unterschieden durch `status`.
 
 ---
 
 # Narrowing ist Mengen-Verkleinerung
 
 ```typescript
-function format(x: string | number) {
-  // x: string | number   — die ganze Menge
-  if (typeof x === 'string') {
-    x // string            — Menge verkleinert
-  } else {
-    x // number            — der Rest
+function render(res: ApiResponse) {
+  // res: loading | success | error   — die ganze Menge
+  if (res.status === 'success') {
+    res.data    // ✅ nur im success-Branch sichtbar
   }
 }
 ```
 
-Jeder Type Guard verkleinert die Menge: `typeof` · `instanceof` · `in` · Truthiness
+Jeder Type Guard verkleinert die Menge: `===` · `typeof` · `instanceof` · `in` · Truthiness
 
 ---
 
 # Exhaustiveness mit `never`
 
 ```typescript
-function area(shape: Shape) {
-  switch (shape.kind) {
-    case 'circle': return Math.PI * shape.radius ** 2
-    case 'square': return shape.side ** 2
+function render(res: ApiResponse): string {
+  switch (res.status) {
+    case 'loading': return 'Lädt…'
+    case 'success': return `${res.data.length} Einträge`
+    case 'error':   return res.message
     default:
-      const _exhaustive: never = shape // ❌ wenn ein Fall fehlt
+      const _exhaustive: never = res // ❌ neuer Status? hier knallt's
   }
 }
 ```
@@ -387,18 +381,23 @@ Fehlt ein Fall, ist die Restmenge **nicht leer** → Compile-Fehler.
 
 ```typescript
 type Brand<T, B> = T & { readonly _brand: B }
+type Email = Brand<string, 'Email'>
 
-type EUR = Brand<number, 'EUR'>
-type USD = Brand<number, 'USD'>
+// Type Guard: prüft zur Laufzeit, statt zu casten
+function isEmail(value: string): value is Email {
+  return value.includes('@')
+}
 
-declare function transfer(amount: EUR): void
+declare function sendWelcome(to: Email): void
 
-transfer(42 as EUR)  // ✅
-transfer(42 as USD)  // ❌
-transfer(42)         // ❌
+const input = 'foo@bar.com'
+sendWelcome(input)        // ❌ string ist keine Email
+if (isEmail(input)) {
+  sendWelcome(input)      // ✅ verengt auf die Email-Teilmenge
+}
 ```
 
-Nominales Typing per Mengenschnitt — der Kreis schließt sich.
+`Email ⊆ string` per Schnitt — der Guard ist der einzige Weg hinein.
 
 ---
 
