@@ -13,14 +13,22 @@ Ein mentales Modell für TypeScript
 <div class="text-gray-400 mt-4">Claude Jordan · enterJS 2026 · Mannheim</div>
 
 ---
+layout: section
+---
 
-# Heute
+# Typen sind Mengen
+# TypeScript ist eine funktionale Programmiersprache
+# TypeScript arbeitet auf Mengen
+
+<!--
+ Heute
 
 - Was macht TypeScript anders?
 - Typen als Mengen
 - Was sind eigentlich Generics?
 - Programmieren auf Typebene
 - Anwendung!
+-->
 
 ---
 
@@ -221,11 +229,6 @@ function toArray(...numbers) {
 <img src="/GenericsAsFunctionsExample.svg" class="h-60 mx-auto mt-6" />
 
 
----
-layout: section
----
-
-# TypeScript ist eine funktionale Programmiersprache, die auf Mengen arbeitet
 
 ---
 
@@ -367,13 +370,10 @@ function render(res: ApiResponse): string {
     case 'success': return `${res.data.length} Einträge`
     case 'error':   return res.message
     default:
-      const _exhaustive: never = res // ❌ neuer Status? hier knallt's
+      const _exhaustive: never = res // ❌ nicht alle Fälle abgedeckt
   }
 }
 ```
-
-Alle Teilmengen abgedeckt → übrig bleibt ∅ (`never`).
-Fehlt ein Fall, ist die Restmenge **nicht leer** → Compile-Fehler.
 
 ---
 
@@ -383,12 +383,13 @@ Fehlt ein Fall, ist die Restmenge **nicht leer** → Compile-Fehler.
 type Brand<T, B> = T & { readonly _brand: B }
 type Email = Brand<string, 'Email'>
 
-// Type Guard: prüft zur Laufzeit, statt zu casten
 function isEmail(value: string): value is Email {
   return value.includes('@')
 }
 
-declare function sendWelcome(to: Email): void
+function sendWelcome(to: Email) {
+  ...
+}
 
 const input = 'foo@bar.com'
 sendWelcome(input)        // ❌ string ist keine Email
@@ -396,8 +397,6 @@ if (isEmail(input)) {
   sendWelcome(input)      // ✅ verengt auf die Email-Teilmenge
 }
 ```
-
-`Email ⊆ string` per Schnitt — der Guard ist der einzige Weg hinein.
 
 ---
 
@@ -408,9 +407,26 @@ type EventName = `on${Capitalize<string>}`
 // 'onClick' | 'onChange' | 'onSubmit' | ...
 ```
 
-Eine unendliche Menge, beschrieben durch ein **Muster** statt durch Aufzählung.
-
 ---
+
+<!--
+# as const + satisfies
+
+```typescript
+type Route = { path: string; auth: boolean }
+
+const routes = {
+  home:    { path: '/',   auth: false },
+  profile: { path: '/me', auth: true  },
+} as const satisfies Record<string, Route>
+
+routes.home.path  // '/'   — exakter Literal-Typ bleibt erhalten
+routes.home.auth  // false
+```
+
+- `as const` → kleinste Menge: Singletons statt `string` / `boolean`
+- `satisfies` → Mitgliedschaft prüfen, **ohne** zu verbreitern
+-->
 
 # Excess Property Checking
 
