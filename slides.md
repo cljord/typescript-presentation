@@ -14,13 +14,12 @@ Ein mentales Modell für TypeScript
 
 ---
 
-# Was erwartet euch heute?
+# Heute
 
 - Strukturelles vs. nominales Typsystem
-- Typen als Mengen denken
-- Der Typ-Verband: `unknown`, `never`, und alles dazwischen
+- Typen als Mengen
 - Generics als Funktionen auf Typebene
-- Das Modell in der Praxis: Discriminated Unions, Branded Types, Template Literal Types
+- In der Praxis: Discriminated Unions, Branded Types, Template Literals
 - Wo das Modell an Grenzen stößt
 
 ---
@@ -30,226 +29,271 @@ layout: section
 # Strukturelles vs. nominales Typsystem
 
 ---
+layout: two-cols-header
+---
 
-# Nominales Typsystem: C
+# C prüft den Namen
 
-In C identifiziert der Compiler Typen anhand ihres **Namens** — nicht ihrer Form.
+::left::
 
 ```c
-typedef struct { char* name; } Dog;
-typedef struct { char* name; } Cat;
+typedef struct {
+  char* name;
+} Dog;
 
-void greet(Dog d) {
-    printf("Hello, %s\n", d.name);
-}
-
-int main() {
-    Cat c = { "Whiskers" };
-    greet(c); // ❌ error: incompatible type for argument
-}
+typedef struct {
+  char* name;
+} Cat;
 ```
 
-`Dog` und `Cat` haben exakt dieselbe Struktur — aber unterschiedliche Namen.  
-Für C ist das ein Typfehler.
+::right::
+
+```c
+void greet(Dog d) { printf("Hello, %s\n", d.name); }
+
+Dog d = { "Beethoven" };
+greet(c); // ✅
+
+Cat c = { "Jennifer" };
+greet(c); // ❌
+```
+
+<style>
+.two-cols-header {
+  grid-template-rows: 100px 1fr;
+}
+</style>
 
 ---
 
-# Strukturelles Typsystem: TypeScript
-
-TypeScript fragt nur: **Hat dieser Wert die richtige Form?**
+# TypeScript prüft die Form
 
 ```typescript
 type Dog = { name: string }
 type Cat = { name: string }
 
-function greet(d: Dog) {
-    console.log(`Hello, ${d.name}`)
-}
+function greet(d: Dog) { console.log("Hello, " + d.name }
 
-const c: Cat = { name: "Whiskers" }
-greet(c) // ✅ fine
+const d: Dog = { name: "Beethoven" }
+greet(c) // ✅
+
+const c: Cat = { name: "Jennifer" }
+greet(c) // ✅
 ```
 
-Kein gemeinsamer Ancestor, keine explizite Deklaration — gleiche Form reicht.
-
-**Die entscheidende Frage:** Warum funktioniert das so — und was hat das mit Mengen zu tun?
+Gleiche Form reicht. **Was ist der Unterschied im Typsystem?**
 
 ---
-layout: section
----
 
-# Typen als Mengen
+# Nominal vs. strukturell
+
+In C: ein Typ wird durch seinen Namen beschrieben
+
+In TypeScript: ein Typ wird durch seine Struktur beschrieben
+
+<img src="/CvsTypeScript.svg" class="h-60 mx-auto mt-6" />
 
 ---
 
 # Jeder Typ ist eine Menge von Werten
 
+<!--
 | Typ | Menge |
 |---|---|
-| `number` | alle Zahlen: `0, 1, -1, 3.14, ...` |
-| `string` | alle Strings: `"", "hello", "abc", ...` |
-| `"hello"` | genau ein Wert: `{ "hello" }` |
-| `true` | genau ein Wert: `{ true }` |
-| `{ name: string }` | alle Objekte mit mindestens `name: string` |
+| `number` | alle Zahlen |
+| `string` | alle Strings |
+| `"hello"` | genau ein Wert |
+| `{ name: string }` | alle Objekte mit `name: string` |
+-->
 
-Ein **Literal-Typ** ist eine einelementige Menge.  
-Ein **primitiver Typ** ist eine unendliche Menge.
+<img src="/TSSetExamples.svg" class="h-100 mx-auto mt-6" />
+
+<!-- image: number/string als große Kreise, "hello" als Punkt darin -->
 
 ---
 
-# Union und Intersection
+# Jeder Typ ist eine Menge von Werten
 
+<img src="/TSObjectIsSetWithAtLeastProperty.svg" class="h-100 mx-auto mt-6" />
+
+---
+layout: two-cols-header
+---
+
+# Intersection und Union
+
+<!--
 ```typescript
 type A = { x: number }
 type B = { y: number }
+
+type U = A | B   // Vereinigung: x ODER y
+type I = A & B   // Schnitt: x UND y  →  { x: number, y: number }
 ```
 
-**Union `A | B`** — Mengenvereiningung: Werte in A, oder B, oder beiden
+`&` ist kein "Objekte zusammenfügen" — es ist die Menge, die **beide** Constraints erfüllt.
+-->
 
+<!-- image: zwei Venn-Diagramme, Union vs. Intersection -->
+::left::
+<img src="/IntersectionExample.svg" class="h-100 mx-auto mt-6" />
+::right::
+<img src="/UnionExample.svg" class="h-100 mx-auto mt-6" />
+
+<style>
+.two-cols-header {
+  grid-template-rows: 25px 1fr;
+}
+.two-cols-header :deep(.col-right) {
+  border-left: 3px solid #8884;
+  padding-left: 1.5rem;
+}
+</style>
+---
+layout: two-cols-header
+---
+
+# never und unknown
+
+<!--
 ```typescript
-type AorB = A | B
-// alle Objekte mit x, oder alle mit y
+type Nothing = string & number   // never  — leere Menge ∅
 ```
 
-**Intersection `A & B`** — Mengenschnitt: Werte, die **beide** Constraints erfüllen
+- `never` — die leere Menge: kein Wert
+- `unknown` — die universelle Menge: jeder Wert
+-->
 
-```typescript
-type AandB = A & B
-// { x: number, y: number }
-// alle Objekte mit x UND y
-```
+<!-- image: ∅ als leerer Kreis, unknown als alles umschließender Kreis -->
+::left::
+<img src="/Never.svg" class="h-100 mx-auto mt-6" />
+::right::
+<img src="/Unknown.svg" class="h-100 mx-auto mt-6" />
 
-Nicht als "zwei Objekte zusammenfügen" denken — als "die Menge, die beide Bedingungen erfüllt."
+<style>
+.two-cols-header {
+  grid-template-rows: 50px 1fr;
+}
+
+.two-cols-header :deep(.col-right) {
+  border-left: 3px solid #8884;
+  padding-left: 1.5rem;
+}
+</style>
 
 ---
 
+<!--
 # Subtypen sind Teilmengen
 
 ```typescript
-type Shape   = { kind: string }
-type Circle  = { kind: 'circle'; radius: number }
+type Shape  = { kind: string }
+type Circle = { kind: 'circle'; radius: number }
+//  Circle ⊆ Shape
 ```
 
-`Circle` ist ein Subtyp von `Shape` — weil jeder `Circle`-Wert auch ein gültiger `Shape`-Wert ist.
+Mehr Properties = **kleinere** Menge = spezifischerer Typ.
+-->
 
-In Mengensprache: `Circle ⊆ Shape`
+<!-- image: Circle als Teilmenge innerhalb von Shape -->
 
-Das erklärt auch, warum strukturelles Typing funktioniert:  
-`Cat` mit `{ name: string }` ist eine Teilmenge der Werte, die `Dog` mit `{ name: string }` beschreibt —  
-dieselbe Menge, sogar.
+<!--
+
+section layout
+# Generics als Funktionen auf Typebene
+
+-->
+
+<!--
+# Generics sind Typ-Funktionen
+
+```typescript
+// Werte → Werte
+function identity(x: number): number { return x }
+
+// Typen → Typen
+type Box<T> = { value: T }
+```
+
+`Array<T>`, `Promise<T>` — eine Funktion von Mengen auf Mengen.
+-->
+
+# Funktionen sind Abbildungen auf Mengen
+
+<img src="/FunctionExample.svg" class="h-100 mx-auto mt-6" />
 
 ---
 layout: section
 ---
 
-# Der Typ-Verband
+# TypeScript ist eine funktionale Programmiersprache, die auf Mengen arbeitet
 
 ---
 
-# unknown, never, und alles dazwischen
+# Was brauchen Funktionen?
 
-TypeScript hat zwei besondere Typen:
+- Generics
+- Branching
+- Looping
+- (Unbounded memory access) (anpassen)
 
-**`unknown`** — die universelle Menge: *alle* möglichen Werte  
-Jeder Typ ist ein Subtyp von `unknown`. Es ist der allgemeinste Typ.
+---
 
-**`never`** — die leere Menge: *keine* Werte  
-`never` ist ein Subtyp von jedem Typ. Kein Wert hat diesen Typ.
+# Generics Types
 
 ```typescript
-type A = string & number  // never — kein Wert ist gleichzeitig string und number
+type MyArray<T> = T[]
+type MyNumberArray = MyArray<number>
+```
 
-function fail(msg: string): never {
-    throw new Error(msg)  // diese Funktion gibt nie einen Wert zurück
+<img src="/GenericsAsFunctionsExample.svg" class="h-80 mx-auto mt-6" />
+
+---
+
+# Conditional Types & infer
+
+```typescript
+type ElementType<T> = T extends (infer U)[] ? U : T
+
+type A = ElementType<string[]>  // string
+type B = ElementType<number>    // number
+```
+
+- `extends` = "ist T eine **Teilmenge**?"
+- `infer` = "welcher Typ würde hier passen?"
+
+---
+
+# Mapped Types
+
+```typescript
+type Optional<T> = {
+  [K in keyof T]?: T[K]
 }
 ```
 
+Iteriere über die Members einer Menge, transformiere jeden.
+
 ---
 
-# Der Verband (Lattice)
-
-```
-          unknown        ← größte Menge (alle Werte)
-          /     \
-       string  number
-       /    \
-   "hello" "world"       ← einelementige Mengen
-          \     /
-          never          ← leere Menge (keine Werte)
-```
-
-**Die kontraintuitive Regel:** mehr Properties = **kleinere** Menge
+# Rekursion
 
 ```typescript
-type A = { x: number }                       // viele Objekte passen
-type B = { x: number; y: number }            // weniger Objekte passen
-type C = { x: number; y: number; z: string } // noch weniger
+type Reverse<T extends any[]> =
+  T extends [infer Head, ...infer Tail]
+    ? [...Reverse<Tail>, Head]
+    : []
+
+type R = Reverse<[1, 2, 3]>  // [3, 2, 1]
 ```
 
-`C ⊆ B ⊆ A` — mehr Constraints, kleinere Menge, spezifischerer Typ.
-
-`any` ist der Ausreißer: es ist gleichzeitig oben und unten. Es verlässt das System.
+Das Typsystem ist **Turing-vollständig** — ganze Parser auf Typebene (SQL, GraphQL).
 
 ---
 layout: section
 ---
 
-# Generics als Funktionen auf Typebene
-
----
-
-# Generics sind Typ-Funktionen
-
-Eine Funktion nimmt Werte und gibt Werte zurück.  
-Ein Generic nimmt **Typen** und gibt **Typen** zurück.
-
-```typescript
-// Wert-Ebene
-function identity(x: number): number { return x }
-
-// Typ-Ebene
-type Identity<T> = T
-```
-
-`Array<T>` ist eine Funktion: nimmt `T`, gibt "Menge aller Arrays von T" zurück.
-
-```typescript
-Array<string>  // Menge aller String-Arrays
-Array<number>  // Menge aller Number-Arrays
-```
-
----
-
-# Utility Types als Mengentransformationen
-
-```typescript
-type Partial<T>  // T → größere Menge (optionale Properties = mehr Objekte passen)
-type Required<T> // T → kleinere Menge
-type Readonly<T> // T → gleich große Menge, andere Constraints
-```
-
-`Exclude` ist **direkt** Mengendifferenz:
-
-```typescript
-type A = string | number | boolean
-type B = Exclude<A, boolean>  // string | number
-
-// A \ boolean
-```
-
-Conditional Types sind if-then-else auf Typebene:
-
-```typescript
-type IsString<T> = T extends string ? true : false
-//                 ^^^^^^^^^^^^^^^^^^
-//                 "ist T eine Teilmenge von string?"
-```
-
----
-layout: section
----
-
-# Das Modell in der Praxis
+# In der Praxis
 
 ---
 
@@ -257,43 +301,21 @@ layout: section
 
 ```typescript
 type Shape =
-  | { kind: 'circle';   radius: number }
-  | { kind: 'square';   side: number   }
-  | { kind: 'triangle'; base: number; height: number }
+  | { kind: 'circle'; radius: number }
+  | { kind: 'square'; side: number }
 ```
 
-`kind` ist ein Literal-Typ — eine einelementige Menge.  
-Jede Branch ist eine **disjunkte Teilmenge** der Union.
-
-Narrowing ist Mengenschnitt:
+Jede Branch ist eine disjunkte Teilmenge. Narrowing ist Mengenschnitt:
 
 ```typescript
 if (shape.kind === 'circle') {
-    // TypeScript schneidet Shape mit { kind: 'circle' }
-    // nur die Circle-Branch bleibt übrig
-    shape.radius  // ✅
+  shape.radius // ✅  Shape ∩ { kind: 'circle' }
 }
 ```
-
-TypeScript kann Exhaustiveness-Checking machen, weil es weiß:  
-die drei Branches partitionieren die gesamte Union vollständig.
 
 ---
 
 # Branded Types
-
-Problem: strukturelles Typing bedeutet, jede `number` ist eine gültige `number`.
-
-```typescript
-function transferMoney(amount: number, from: Account, to: Account) { ... }
-
-const euros = 42
-const dollars = 42
-transferMoney(euros, ...)   // ✅ — aber ist das richtig?
-transferMoney(dollars, ...) // ✅ — TypeScript sieht keinen Unterschied
-```
-
-Lösung: durch Intersection eine spezifischere Teilmenge schaffen.
 
 ```typescript
 type Brand<T, B> = T & { readonly _brand: B }
@@ -301,14 +323,14 @@ type Brand<T, B> = T & { readonly _brand: B }
 type EUR = Brand<number, 'EUR'>
 type USD = Brand<number, 'USD'>
 
-function transferEUR(amount: EUR) { ... }
+declare function transfer(amount: EUR): void
 
-transferEUR(42 as EUR)        // ✅
-transferEUR(42 as USD)        // ❌ Type 'USD' is not assignable to type 'EUR'
-transferEUR(42)               // ❌
+transfer(42 as EUR)  // ✅
+transfer(42 as USD)  // ❌
+transfer(42)         // ❌
 ```
 
-Nominales Typing durch Mengenschnitt simuliert — der Kreis schließt sich.
+Nominales Typing per Mengenschnitt — der Kreis schließt sich.
 
 ---
 
@@ -316,22 +338,10 @@ Nominales Typing durch Mengenschnitt simuliert — der Kreis schließt sich.
 
 ```typescript
 type EventName = `on${Capitalize<string>}`
-// die Menge aller Strings der Form "on..." mit Großbuchstaben danach
-// 'onClick', 'onChange', 'onSubmit', ...
+// 'onClick' | 'onChange' | 'onSubmit' | ...
 ```
 
-Nicht eine Aufzählung von Werten — eine Beschreibung einer **unendlichen Menge** durch ein Muster.
-
-Kombiniert mit Mapped Types:
-
-```typescript
-type EventMap<T extends string> = {
-    [K in `on${Capitalize<T>}`]: () => void
-}
-
-type MouseEvents = EventMap<'click' | 'move' | 'down'>
-// { onClick: () => void; onMove: () => void; onDown: () => void }
-```
+Eine unendliche Menge, beschrieben durch ein **Muster** statt durch Aufzählung.
 
 ---
 layout: section
@@ -343,38 +353,27 @@ layout: section
 
 # Excess Property Checking
 
-Das Mengenmodell sagt: `{ x, y, z }` ist eine gültige `Point`-Instanz — denn jedes Objekt mit x, y, z erfüllt auch die Point-Constraints.
-
 ```typescript
 type Point = { x: number; y: number }
 
 const obj = { x: 1, y: 2, z: 3 }
-const p: Point = obj  // ✅ — korrekt laut Mengenmodell
+const p: Point = obj                  // ✅
+
+const q: Point = { x: 1, y: 2, z: 3 } // ❌ excess property 'z'
 ```
 
-Aber bei direkter Zuweisung eines Object Literals:
-
-```typescript
-const p: Point = { x: 1, y: 2, z: 3 }  // ❌ Object literal may only specify known properties
-```
-
-TypeScript fügt hier eine **pragmatische Ausnahme** hinzu: bei frischen Object Literals wird angenommen, dass extra Properties ein Tippfehler sind.
-
-Das Mengenmodell gilt — TypeScript entscheidet sich nur, in diesem Fall strenger zu sein.
+Laut Mengenmodell sind beide gültig. TypeScript ist bei frischen Object Literals bewusst strenger.
 
 ---
 
 # Zusammenfassung
 
-- **Strukturelles Typing** beschreibt Formen, nicht Namen — darum mappen Typen natürlich auf Mengen
-- Jeder Typ ist eine Menge von Werten; `|` ist Vereinigung, `&` ist Schnitt
-- `unknown` = universelle Menge, `never` = leere Menge; mehr Properties = kleinere Menge
-- Generics sind Funktionen auf Typebene — Mengentransformationen
-- Discriminated Unions, Branded Types, Template Literals werden alle klarer durch die Mengenbrille
-- Das Modell hat Grenzen — Excess Property Checking ist eine bewusste pragmatische Ausnahme
+- Strukturelles Typing beschreibt Formen → Typen sind Mengen
+- `|` Vereinigung, `&` Schnitt, `never` ∅, `unknown` universell
+- Generics sind Funktionen auf Mengen — bis hin zu Rekursion
+- Discriminated Unions, Branded Types, Template Literals: alles Mengen
 
-**Das Ziel:** TypeScript nicht als Regelwerk auswendig lernen —  
-sondern ein Modell haben, aus dem man das Regelwerk ableiten kann.
+**Das Ziel:** kein Regelwerk auswendig lernen — ein Modell haben, aus dem die Regeln folgen.
 
 ---
 layout: center
@@ -386,6 +385,5 @@ class: text-center
 Fragen?
 
 <div class="text-gray-400 mt-8">
-Claude Jordan · claude.jordan@scopevisio.com<br>
-github.com/... · LinkedIn: ...
+Claude Jordan · claude.jordan@scopevisio.com
 </div>
