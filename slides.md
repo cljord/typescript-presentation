@@ -23,18 +23,8 @@ Ein mentales Modell für TypeScript
 - Wo das Modell an Grenzen stößt
 
 ---
-layout: section
----
-
-# Strukturelles vs. nominales Typsystem
-
----
-layout: two-cols-header
----
 
 # C prüft den Namen
-
-::left::
 
 ```c
 typedef struct {
@@ -44,11 +34,7 @@ typedef struct {
 typedef struct {
   char* name;
 } Cat;
-```
 
-::right::
-
-```c
 void greet(Dog d) { printf("Hello, %s\n", d.name); }
 
 Dog d = { "Beethoven" };
@@ -58,11 +44,13 @@ Cat c = { "Jennifer" };
 greet(c); // ❌
 ```
 
+<!--
 <style>
 .two-cols-header {
   grid-template-rows: 100px 1fr;
 }
 </style>
+-->
 
 ---
 
@@ -80,8 +68,6 @@ greet(c) // ✅
 const c: Cat = { name: "Jennifer" }
 greet(c) // ✅
 ```
-
-Gleiche Form reicht. **Was ist der Unterschied im Typsystem?**
 
 ---
 
@@ -223,6 +209,22 @@ type Box<T> = { value: T }
 <img src="/FunctionExample.svg" class="h-100 mx-auto mt-6" />
 
 ---
+
+# Generics
+
+```typescript
+type Array<T> = T[]
+type MyNumberArray = Array<number> // number[]
+
+function toArray(...numbers) {
+  return numbers
+}
+```
+
+<img src="/GenericsAsFunctionsExample.svg" class="h-60 mx-auto mt-6" />
+
+
+---
 layout: section
 ---
 
@@ -230,39 +232,37 @@ layout: section
 
 ---
 
-# Was brauchen Funktionen?
+# Was braucht eine Programmiersprache?
 
-- Generics
 - Branching
 - Looping
-- (Unbounded memory access) (anpassen)
 
 ---
 
-# Generics Types
-
-```typescript
-type MyArray<T> = T[]
-type MyNumberArray = MyArray<number>
-```
-
-<img src="/GenericsAsFunctionsExample.svg" class="h-80 mx-auto mt-6" />
-
----
-
-# Conditional Types & infer
+# Branching: Conditional Types & infer
 
 ```typescript
 type ElementType<T> = T extends (infer U)[] ? U : T
 
-type A = ElementType<string[]>  // string
-type B = ElementType<number>    // number
+type A = ElementType<number>    // number
+type B = ElementType<string[]>  // string
+type C = ElementType<string[][]> // string[]
 ```
 
-- `extends` = "ist T eine **Teilmenge**?"
-- `infer` = "welcher Typ würde hier passen?"
+```typescript
+function elementType(value) {
+  return Array.isArray(value) ? value[0] : value;
+}
 
----
+elementType(42);          // 42
+elementType(["a", "b"]);  // "a"
+elementType([["nested", "array"], "outside"]) // ["nested", "array"]
+```
+
+- `T extends X` = "ist T eine **Teilmenge** von X?"
+- `infer` = frag TypeScript, welcher Typ passt
+
+<!--
 
 # Mapped Types
 
@@ -273,11 +273,13 @@ type Optional<T> = {
 ```
 
 Iteriere über die Members einer Menge, transformiere jeden.
+-->
 
 ---
 
 # Rekursion
 
+<!--
 ```typescript
 type Reverse<T extends any[]> =
   T extends [infer Head, ...infer Tail]
@@ -286,14 +288,34 @@ type Reverse<T extends any[]> =
 
 type R = Reverse<[1, 2, 3]>  // [3, 2, 1]
 ```
+-->
 
-Das Typsystem ist **Turing-vollständig** — ganze Parser auf Typebene (SQL, GraphQL).
+```typescript
+type DeepElementType<T> =
+  T extends (infer U)[]
+    ? DeepElementType<U>
+    : T;
+
+type A = ElementType<number>    // number
+type B = ElementType<string[]>  // string
+type C = ElementType<string[][]> // string
+```
+
+```typescript
+function deepElementType(value) {
+  return Array.isArray(value) ? deepElementType(value[0]) : value;
+}
+
+elementType(42);          // 42
+elementType(["a", "b"]);  // "a"
+elementType([["nested", "array"], "outside"]) // "nested"
+```
 
 ---
 layout: section
 ---
 
-# In der Praxis
+# Ziel: kleinste Menge, die Typen vollständig beschreibt
 
 ---
 
