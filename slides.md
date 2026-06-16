@@ -483,7 +483,3 @@ class: text-center
 # Danke!
 
 Fragen?
-
-<div class="text-gray-400 mt-8">
-Claude Jordan · claude.jordan@scopevisio.com
-</div>
