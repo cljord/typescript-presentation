@@ -10,7 +10,7 @@ transition: slide-left
 
 Ein mentales Modell für TypeScript
 
-<div class="text-gray-400 mt-4">Claude Jordan · enterJS 2026 · Mannheim</div>
+<div class="text-gray-400 mt-4">Claude Jordan</div>
 
 ---
 layout: section
@@ -255,9 +255,9 @@ elementType([["nested", "array"], "outside"]) // ["nested", "array"]
 - `T extends X` = "ist T eine **Teilmenge** von X?"
 - `infer` = frag TypeScript, welcher Typ passt
 
----
 
-# Gotcha: Distribution
+<!--
+Distribution
 
 ```typescript
 type ElementTypeDistributive<T> = T extends (infer U)[] ? U : T
@@ -266,6 +266,7 @@ type ElementTypeNonDistributive<T> = [T] extends [(infer U)[]] ? U : T
 type A = ElementTypeDistributive<number | string[]> // number | string
 type B = ElementTypeNonDistributive<number | string[]> // number | string[]
 ```
+-->
 
 ---
 
@@ -465,7 +466,7 @@ type R = Params<"/users/:id/posts/:postId">
 - Intersection & Union · `never` (∅) & `unknown`
 
 **TypeScript ist eine funktionale Sprache auf Mengen**
-- Generics = Funktionen · Conditional Types & `infer` · Distribution · Rekursion · Mapped Types
+- Generics = Funktionen · Conditional Types & `infer` · Rekursion · Mapped Types
 
 **In der Praxis**
 - Discriminated Unions · Narrowing · Exhaustiveness mit `never`
