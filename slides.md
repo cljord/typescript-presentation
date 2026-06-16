@@ -293,9 +293,9 @@ type DeepElementType<T> =
     ? DeepElementType<U>
     : T;
 
-type A = ElementType<number>    // number
-type B = ElementType<string[]>  // string
-type C = ElementType<string[][]> // string
+type A = DeepElementType<number>    // number
+type B = DeepElementType<string[]>  // string
+type C = DeepElementType<string[][]> // string
 ```
 
 ```typescript
@@ -303,9 +303,9 @@ function deepElementType(value) {
   return Array.isArray(value) ? deepElementType(value[0]) : value;
 }
 
-elementType(42);          // 42
-elementType(["a", "b"]);  // "a"
-elementType([["nested", "array"], "outside"]) // "nested"
+DeepElementType(42);          // 42
+DeepElementType(["a", "b"]);  // "a"
+DeepElementType([["nested", "array"], "outside"]) // "nested"
 ```
 
 ---
@@ -461,10 +461,16 @@ type R = Params<"/users/:id/posts/:postId">
 
 # Zusammenfassung
 
-- Strukturelles Typing beschreibt Formen → Typen sind Mengen
-- `|` Vereinigung, `&` Schnitt, `never` ∅, `unknown` universell
-- Generics sind Funktionen auf Mengen — bis hin zu Rekursion
-- Discriminated Unions, Branded Types, Template Literals: alles Mengen
+**Strukturell statt nominal** → Typen sind Mengen von Werten
+- Intersection & Union · `never` (∅) & `unknown`
+
+**TypeScript ist eine funktionale Sprache auf Mengen**
+- Generics = Funktionen · Conditional Types & `infer` · Distribution · Rekursion · Mapped Types
+
+**In der Praxis**
+- Discriminated Unions · Narrowing · Exhaustiveness mit `never`
+- Branded Types · Template Literal Types · Excess Property Checking
+- Routen-Parser — alles zusammen
 
 **Das Ziel:** kein Regelwerk auswendig lernen — ein Modell haben, aus dem die Regeln folgen.
 
